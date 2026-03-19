@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Proctored Examination</title>
+    <script defer src="https://unpkg.com/@tensorflow/tfjs"></script>
+    <script defer src="https://unpkg.com/@tensorflow-models/handpose"></script>
+    <script defer src="https://unpkg.com/@tensorflow-models/face-landmarks-detection"></script>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Times+New+Roman:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #bab7b4;
+            font-family: 'Times New Roman', Times, serif;
+            font-weight: bold;
+        }
+        .question-paper {
+            background-color: #ab0022;
+        }
+        .question-text {
+            color: #f4e0ff;
+        }
+        .custom-btn {
+            background-color: black;
+            color: white;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+        }
+        .custom-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(0,0,0,0.3);
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .pulse-animation {
+            animation: pulse 2s infinite;
+        }
+        .shake {
+            animation: shake 0.5s;
+        }
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+            100% { transform: translateX(0); }
+        }
+        /* Lock down cursor */
+        body, textarea {
+            user-select: none; /* Prevents text selection for easy copying */
+        }
+    </style>
+</head>
+<body oncontextmenu="return false;"> <div id="exam-page" class="min-h-screen p-4">
+        <div class="container mx-auto">
+            <header class="text-center mb-6 fade-in">
+                <h1 class="text-4xl font-bold text-white mb-2">AI Proctored Examination</h1>
+                <div class="bg-white rounded-xl p-3 inline-block">
+                    <p class="text-2xl font-bold">Time Remaining: <span id="timer" class="text-red-600">03:00:00</span></p>
+                </div>
+            </header>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white p-6 rounded-xl shadow-lg fade-in">
+                    <h2 class="text-2xl font-bold mb-4">Camera Monitoring</h2>
+                    <div class="relative">
+                        <video id="webcam" class="w-full h-64 bg-black rounded-lg" autoplay playsinline></video>
+                        <div id="warning-overlay" class="hidden absolute top-0 left-0 w-full h-full bg-red-500 bg-opacity-30 flex items-center justify-center">
+                            <div class="bg-white p-4 rounded-xl shadow-lg">
+                                <p class="text-xl font-bold text-red-600 mb-2">WARNING!</p>
+                                <p id="warning-message" class="text-lg mb-3">Keep your hands visible within the frame!</p>
+                                <button id="warning-ok-btn" class="custom-btn px-6 py-2">OK</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-4 space-y-2">
+                        <div class="flex justify-between">
+                            <p class="text-lg">Warnings: <span id="warning-count" class="font-bold">0</span>/6</p>
+                            <div id="status" class="text-green-500 text-lg"><i class="bi bi-check-circle"></i> Monitoring Active</div>
+                        </div>
+                        <div class="flex space-x-2">
+                            <div class="flex-1 bg-gray-200 rounded-full h-4">
+                                <div id="warning-progress" class="bg-red-500 rounded-full h-4" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="question-paper p-6 rounded-xl shadow-lg fade-in">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-2xl font-bold text-white">Examination Paper</h2>
+                        <p class="text-white text-lg">Solve any 6 questions (60 marks)</p>
+                    </div>
+
+                    <div class="space-y-6 overflow-y-auto max-h-[500px] pr-2">
+                        <div class="question-text p-4 bg-opacity-20 bg-black rounded-lg">
+                            <p class="text-xl mb-2">1. Explain A* Algorithm in Detail?</p>
+                            <div class="space-y-2 ml-4">
+                                <label class="flex items-center space-x-2">
+                                    <input type="radio" name="q1" value="your_answer_q1" class="form-radio">
+                                    <span class="text-white text-lg">Your Answer</span>
+                                </label>
+                            </div>
+                            <textarea class="w-full p-2 rounded-lg mt-2 text-black" rows="3" placeholder="Type your answer here"></textarea>
+                        </div>
+
+                        <div class="question-text p-4 bg-opacity-20 bg-black rounded-lg">
+                            <p class="text-xl mb-2">2. Explain Machine Learning?</p>
+                            <div class="space-y-2 ml-4">
+                                <label class="flex items-center space-x-2">
+                                    <input type="radio" name="q2" value="your_answer_q2" class="form-radio">
+                                    <span class="text-white text-lg">Your Answer</span>
+                                </label>
+                            </div>
+                            <textarea class="w-full p-2 rounded-lg mt-2 text-black" rows="3" placeholder="Type your answer here"></textarea>
+                        </div>
+
+                        <div class="question-text p-4 bg-opacity-20 bg-black rounded-lg">
+                            <p class="text-xl mb-2">3.Explain Datawarehouse With diagram?</p>
+                            <div class="ml-4">
+                                <textarea class="w-full p-2 rounded-lg text-black" rows="3" placeholder="Type your answer here"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="question-text p-4 bg-opacity-20 bg-black rounded-lg">
+                            <p class="text-xl mb-2">4. Explain Data Preprocessing.</p>
+                            <div class="ml-4">
+                                <textarea class="w-full p-2 rounded-lg text-black" rows="3" placeholder="Type your answer here"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="question-text p-4 bg-opacity-20 bg-black rounded-lg">
+                            <p class="text-xl mb-2">5. Compare Supervised and Unsupervised Machine LEarning ?</p>
+                            <div class="space-y-2 ml-4">
+                                <label class="flex items-center space-x-2">
+                                    <input type="radio" name="q5" value="Au" class="form-radio">
+                                    <span class="text-white text-lg">Option A</span>
+                                </label>
+                                <label class="flex items-center space-x-2">
+                                    <input type="radio" name="q5" value="Ag" class="form-radio">
+                                    <span class="text-white text-lg">Option B</span>
+                                </label>
+                                <label class="flex items-center space-x-2">
+                                    <input type="radio" name="q5" value="Fe" class="form-radio">
+                                    <span class="text-white text-lg">Option C</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 text-center">
+                        <button id="submit-btn" class="custom-btn text-xl px-8 py-3 pulse-animation">Submit Exam</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="exam-complete-page" class="min-h-screen flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-xl shadow-2xl p-8 w-full max-w-md fade-in text-center">
+            <div class="text-6xl mb-6 text-green-500">
+                <i class="bi bi-check-circle"></i>
+            </div>
+            <h1 class="text-4xl font-bold mb-4">Exam Submitted</h1>
+            <p id="completion-message" class="text-xl mb-6">Your exam has been submitted successfully!</p>
+            <p class="text-lg mb-8">Thank to you for completing the examination.</p>
+            <button id="return-home-btn" class="custom-btn px-8 py-3 text-xl">Return to Home</button>
+        </div>
+    </div>
+
+
+    <script>
+        // DOM Elements
+        const webcamElement = document.getElementById('webcam');
+        const warningOverlay = document.getElementById('warning-overlay');
+        const warningMessage = document.getElementById('warning-message');
+        const warningOkBtn = document.getElementById('warning-ok-btn');
+        const warningCountEl = document.getElementById('warning-count');
+        const warningProgress = document.getElementById('warning-progress');
+        const statusEl = document.getElementById('status');
+        const timerEl = document.getElementById('timer');
+        const submitBtn = document.getElementById('submit-btn');
+        const examPage = document.getElementById('exam-page');
+
+        // Variables
+        let warningCount = 0;
+        const MAX_WARNINGS = 6;
+        let examSubmitted = false;
+        let examDuration = 3 * 60 * 60; // 3 hours in seconds (Adjust for testing: e.g., 30 for 30 seconds)
+        let timerInterval;
+        let monitoringInterval; // Interval for sending frames
+        let tabSwitchActive = false; // Flag to control tab switch warnings
+
+        // Event Listeners
+        warningOkBtn.addEventListener('click', function() {
+            warningOverlay.classList.add('hidden');
+        });
+
+        submitBtn.addEventListener('click', function() {
+            submitExam('manual');
+        });
+
+        // Anti-Cheating Event Listeners (Client-Side Lockdown)
+
+        // 1. Disable Copy/Paste and Right-Click on Key Presses (Ctrl+C, Ctrl+V, Ctrl+Shift+I/J/K)
+        document.addEventListener('keydown', function(e) {
+            // Check for F12 (Developer Tools)
+            if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'K'))) {
+                e.preventDefault();
+                showWarning("Attempt to open Developer Tools detected! Do not tamper with the exam window.");
+            }
+            // Check for Print Screen (PrntScrn/SysRq) or Ctrl+P
+            if (e.key === 'PrintScreen' || (e.ctrlKey && e.key === 'P')) {
+                e.preventDefault();
+                showWarning("Attempt to capture screen detected!");
+            }
+            // Check for Copy (Ctrl+C/Cmd+C) and Paste (Ctrl+V/Cmd+V)
+            if (e.ctrlKey && (e.key === 'c' || e.key === 'v' || e.key === 'x')) {
+                e.preventDefault();
+                showWarning("Copy/Paste/Cut action is disabled.");
+            }
+        });
+
+        // 2. Disable Right-Click (Context Menu) - Added directly to the <body> tag as well (oncontextmenu)
+
+        // 3. Tab Switching / Window Focus Detection
+        document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'hidden' && tabSwitchActive) {
+                // If the tab is switched away from or the window is minimized
+                captureAndSendScreenshot().then(imageData => {
+                    sendTabSwitchWarning(imageData);
+                }).catch(err => {
+                    console.error("Failed to capture screenshot:", err);
+                    showWarning("Tab switched! Failed to log screenshot.");
+                });
+            }
+        });
+
+        // --- Functions for Webcam and Monitoring ---
+
+        async function setupWebcamAndMonitoring() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                webcamElement.srcObject = stream;
+
+                statusEl.innerHTML = '<i class="bi bi-check-circle"></i> Monitoring Active';
+                statusEl.classList.remove('text-red-500');
+                statusEl.classList.add('text-green-500');
+
+                // Start sending frames for backend detection
+                monitoringInterval = setInterval(sendFrameForDetection, 500); // Send frame every 500ms
+                tabSwitchActive = true; // Enable tab switching checks after stream starts
+
+            } catch (error) {
+                console.error('Error accessing webcam/microphone for exam monitoring:', error);
+                statusEl.innerHTML = '<i class="bi bi-x-circle"></i> Monitoring Disabled (Webcam/Mic Error)!';
+                statusEl.classList.remove('text-green-500');
+                statusEl.classList.add('text-red-500');
+                alert('Webcam/Microphone access denied. Exam cannot be proctored. Please allow access and refresh.');
+                examSubmitted = true; // Effectively stop the exam if no proctoring
+            }
+        }
+
+        function captureAndSendScreenshot() {
+            return new Promise((resolve, reject) => {
+                const video = document.getElementById('webcam');
+                if (!video || video.readyState !== 4) {
+                    reject("Webcam video not ready.");
+                    return;
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const context = canvas.getContext('2d');
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                const imageData = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+                resolve(imageData);
+            });
+        }
+
+        function sendTabSwitchWarning(imageData) {
+            fetch('/tab-switch-warning', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: imageData })
+            }).then(response => {
+                if (response.status === 400) { // Warning detected and logged by server
+                    showWarning("Tab switching detected! Do not leave the exam window.");
+                } else if (response.ok) {
+                    console.log("Tab switch logged successfully, but no warning triggered.");
+                }
+            }).catch(error => {
+                console.error("Error sending tab switch warning:", error);
+            });
+        }
+
+
+        function sendFrameForDetection() {
+            if (examSubmitted || !webcamElement.srcObject || webcamElement.readyState !== 4) {
+                return;
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = webcamElement.videoWidth;
+            canvas.height = webcamElement.videoHeight;
+            const context = canvas.getContext('2d');
+            context.drawImage(webcamElement, 0, 0, canvas.width, canvas.height);
+
+            const imageData = canvas.toDataURL('image/jpeg', 0.8).split(',')[1]; // Base64 string
+
+            fetch('/detect-movement', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: imageData })
+            })
+            .then(response => {
+                if (!response.ok && response.status !== 400) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.warning_type !== "none" && data.warning_message) {
+                    showWarning(data.warning_message);
+                } else {
+                    if (!warningOverlay.classList.contains('hidden')) {
+                         warningOverlay.classList.add('hidden');
+                    }
+                    if (statusEl.innerHTML !== '<i class="bi bi-check-circle"></i> Monitoring Active') {
+                         statusEl.innerHTML = '<i class="bi bi-check-circle"></i> Monitoring Active';
+                         statusEl.classList.remove('text-red-500', 'text-yellow-500');
+                         statusEl.classList.add('text-green-500');
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error during exam monitoring detection:', error);
+                statusEl.innerHTML = '<i class="bi bi-x-circle"></i> Monitoring Error!';
+                statusEl.classList.remove('text-green-500');
+                statusEl.classList.add('text-red-500');
+                clearInterval(monitoringInterval);
+            });
+        }
+
+        function showWarning(message) {
+            if (examSubmitted) return;
+
+            if (warningOverlay.classList.contains('hidden') || warningMessage.textContent !== message) {
+                warningCount++;
+                warningCountEl.textContent = warningCount;
+                warningProgress.style.width = `${(warningCount / MAX_WARNINGS) * 100}%`;
+
+                warningMessage.textContent = message;
+                warningOverlay.classList.remove('hidden');
+                warningOverlay.classList.add('shake');
+
+                if (warningCount >= MAX_WARNINGS) {
+                    submitExam('auto');
+                }
+            }
+        }
+
+        function submitExam(type) {
+            if (examSubmitted) return;
+            examSubmitted = true;
+
+            clearInterval(timerInterval);
+            clearInterval(monitoringInterval);
+            tabSwitchActive = false;
+
+            if (webcamElement.srcObject) {
+                webcamElement.srcObject.getTracks().forEach(track => track.stop());
+            }
+
+            window.location.href = '/exam-submitted';
+        }
+
+        // Timer Functions
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                if (examDuration <= 0) {
+                    submitExam('timeout');
+                    return;
+                }
+
+                examDuration--;
+                updateTimerDisplay();
+            }, 1000);
+
+            updateTimerDisplay();
+        }
+
+        function updateTimerDisplay() {
+            const hours = Math.floor(examDuration / 3600);
+            const minutes = Math.floor((examDuration % 3600) / 60);
+            const seconds = examDuration % 60;
+
+            timerEl.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+            if (examDuration < 300) {
+                timerEl.classList.add('text-red-600');
+                timerEl.classList.add('pulse-animation');
+            }
+        }
+
+        // Initialize exam setup on page load
+        window.addEventListener('load', () => {
+            setupWebcamAndMonitoring();
+            startTimer();
+        });
+
+        // Ensure webcam stream is stopped when navigating away from exam page
+        window.addEventListener('beforeunload', () => {
+            if (monitoringInterval) {
+                clearInterval(monitoringInterval);
+            }
+            tabSwitchActive = false;
+            if (webcamElement.srcObject) {
+                webcamElement.srcObject.getTracks().forEach(track => track.stop());
+            }
+            const faceRegVideo = document.getElementById('face-reg-webcam');
+            if (faceRegVideo && faceRegVideo.srcObject) {
+                faceRegVideo.srcObject.getTracks().forEach(track => track.stop());
+            }
+        });
+    </script>
+</body>
+</html>

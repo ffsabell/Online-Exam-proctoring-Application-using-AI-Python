@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Registration</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Times+New+Roman:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Times New Roman', Times, serif; background-color: #f0e6d2; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .container { background-color: #fff; padding: 40px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); width: 600px; text-align: center; }
+        h2 { color: #4b0082; margin-bottom: 20px; font-size: 2em; font-weight: bold; }
+        .form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        .full-width { grid-column: span 2; }
+        input[type="text"], input[type="email"], input[type="password"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
+        button { width: 100%; padding: 12px; background-color: #000; color: #fff; border: none; border-radius: 5px; font-size: 1.1em; cursor: pointer; }
+        button:hover { background-color: #333; }
+        .instructions { background-color: #e0b0ff; padding: 15px; border-radius: 8px; margin-bottom: 30px; text-align: left; }
+        .instructions ul { list-style: disc; padding-left: 20px; margin: 0; }
+        .instructions li { margin-bottom: 8px; font-size: 0.9em; }
+        #college_suggestions { position: absolute; width: 100%; background: #fff; border: 1px solid #ccc; max-height: 150px; overflow-y: auto; z-index: 100; }
+        #college_suggestions div { padding: 10px; cursor: pointer; }
+        #college_suggestions div:hover { background-color: #f0f0f0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Student Registration</h2>
+        <div class="instructions">
+            <h3>Instructions</h3>
+            <ul>
+                <li>Complete the form below to register for the exam portal.</li>
+                <li>The name of the college will appear automatically as you type.</li>
+                <li>Ensure all details are accurate as they will be used for your official records.</li>
+            </ul>
+        </div>
+        <form action="/register" method="post">
+            <div class="form-grid">
+                <div>
+                    <label for="first_name">First Name:</label><br>
+                    <input type="text" id="first_name" name="first_name" required>
+                </div>
+                <div>
+                    <label for="last_name">Last Name:</label><br>
+                    <input type="text" id="last_name" name="last_name" required>
+                </div>
+                <div>
+                    <label for="roll_number">Institute Roll Number:</label><br>
+                    <input type="text" id="roll_number" name="roll_number" required>
+                </div>
+                <div>
+                    <label for="email">Email:</label><br>
+                    <input type="email" id="email" name="email" required>
+                </div>
+                <div>
+                    <label for="phone_number">Phone Number:</label><br>
+                    <input type="text" id="phone_number" name="phone_number" required>
+                </div>
+                <div class="full-width">
+                    <label for="college_name">College Name:</label><br>
+                    <div class="relative">
+                        <input type="text" id="college_name" name="college_name" required>
+                        <div id="college_suggestions" class="absolute hidden"></div>
+                    </div>
+                </div>
+                <div class="full-width">
+                    <label for="password">Password:</label><br>
+                    <input type="password" id="password" name="password" required>
+                </div>
+            </div>
+            <button type="submit" class="mt-8">Register</button>
+        </form>
+        <p class="mt-4 text-sm text-gray-600">Already registered? <a href="/student_login" class="text-blue-500 hover:underline">Login here.</a></p>
+    </div>
+    <script>
+        const collegeInput = document.getElementById('college_name');
+        const suggestionsDiv = document.getElementById('college_suggestions');
+
+        collegeInput.addEventListener('input', async function() {
+            const query = this.value;
+            if (query.length < 2) {
+                suggestionsDiv.classList.add('hidden');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/search_colleges?q=${query}`);
+                const colleges = await response.json();
+
+                suggestionsDiv.innerHTML = '';
+                if (colleges.length > 0) {
+                    colleges.forEach(college => {
+                        const div = document.createElement('div');
+                        div.textContent = college;
+                        div.addEventListener('click', function() {
+                            collegeInput.value = this.textContent;
+                            suggestionsDiv.classList.add('hidden');
+                        });
+                        suggestionsDiv.appendChild(div);
+                    });
+                    suggestionsDiv.classList.remove('hidden');
+                } else {
+                    suggestionsDiv.classList.add('hidden');
+                }
+            } catch (error) {
+                console.error('Error fetching college suggestions:', error);
+                suggestionsDiv.classList.add('hidden');
+            }
+        });
+
+        document.addEventListener('click', function(e) {
+            if (!collegeInput.contains(e.target) && !suggestionsDiv.contains(e.target)) {
+                suggestionsDiv.classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
